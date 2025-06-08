@@ -1,49 +1,94 @@
 import streamlit as st
 import requests
+import json
+from pathlib import Path
+import uuid
 
-st.set_page_config(page_title="Blue Bunny Chat", page_icon="🐰", layout="centered")
+# Constants
+API_URL = "https://blue-bunny-backend.onrender.com/chat"  # Update if backend URL changes
+LORE_DIR = Path(__file__).parent / "lore"
+LORE_DIR.mkdir(exist_ok=True)
 
-st.title("🐰 Blue Bunny Chatbot")
-st.caption("Chat with the legendary stuffed hero of Stuffed Animal World (SAW)")
+# Set Streamlit page config
+st.set_page_config(page_title="Blue Bunny Chatbot", layout="centered")
 
-# Add a link to the lore editor in the sidebar
-st.sidebar.title("🧭 Navigation")
-st.sidebar.markdown("[Edit Lore 📝](http://localhost:8502)", unsafe_allow_html=True)
+# Sidebar navigation
+page = st.sidebar.selectbox("Choose a page", ["Chat", "Edit Lore"])
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# --- Page 1: Chat --- #
+if page == "Chat":
+    st.title("💬 Chat with Blue Bunny 🐰")
 
-# Function to send message to backend
-def ask_blue_bunny(message):
-    try:
-        response = requests.post(
-            "http://localhost:8000/chat",
-            json={"message": message},
-            timeout=10
-        )
-        if response.status_code == 200:
-            return response.json()["reply"]
-        else:
-            return "Oops! Blue Bunny is napping. Try again soon."
-    except Exception as e:
-        return f"Error: {e}"
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-# Input form (prevents infinite rerun)
-with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_input("You:", placeholder="Ask me anything about SAW...", key="user_input_input")
-    submitted = st.form_submit_button("Send")
+    for msg in reversed(st.session_state.messages):
+        st.chat_message(msg["role"]).markdown(msg["content"])
 
-# Handle form submission
-if submitted and user_input:
-    st.session_state.messages.insert(0, {"role": "user", "content": user_input})
-    reply = ask_blue_bunny(user_input)
-    st.session_state.messages.insert(0, {"role": "blue_bunny", "content": reply})
-    st.rerun()
+    if prompt := st.chat_input("Ask Blue Bunny something!"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.chat_message("user").markdown(prompt)
 
-# Display chat history
-for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.markdown(f"**You:** {msg['content']}")
+        try:
+            response = requests.post(API_URL, json={"message": prompt})
+            response.raise_for_status()
+            reply = response.json()["response"]
+        except Exception as e:
+            reply = f"Error: {e}"
+
+        st.session_state.messages.append({"role": "assistant", "content": reply})
+        st.chat_message("assistant").markdown(reply)
+
+
+# --- Page 2: Edit Lore --- #
+elif page == "Edit Lore":
+    st.title("📚 Add or Edit Stuffed Animal Lore")
+
+    files = list(LORE_DIR.glob("*.json"))
+    names = [f.stem.replace("_", " ").title() for f in files]
+    selected = st.selectbox("Select a character to edit or add a new one:", ["Add New"] + names)
+
+    if selected == "Add New":
+        character = {}
+        filename = None
     else:
-        st.markdown(f"**Blue Bunny 🐰:** {msg['content']}")
+        filename = files[names.index(selected) - 1]
+        with open(filename) as f:
+            character = json.load(f)
+
+    name = st.text_input("Name", value=character.get("name", ""))
+    species = st.text_input("Species", value=character.get("species", ""))
+    location = st.text_input("Location", value=character.get("location", ""))
+    personality = st.text_input("Personality", value=character.get("personality", ""))
+    backstory = st.text_area("Backstory", value=character.get("backstory", ""))
+    abilities = st.text_area("Abilities (comma-separated)", value=", ".join(character.get("abilities", [])))
+    friends = st.text_area("Friends (comma-separated)", value=", ".join(character.get("friends", [])))
+    family = st.text_area("Family (comma-separated)", value=", ".join(character.get("familiy", [])))
+    tags = st.text_area("Tags (comma-separated)", value=", ".join(character.get("tags", [])))
+
+    if st.button("Save Lore"):
+        data = {
+            "name": name,
+            "species": species,
+            "location": location,
+            "personality": personality,
+            "backstory": backstory,
+            "abilities": [a.strip() for a in abilities.split(",") if a.strip()],
+            "friends": [f.strip() for f in friends.split(",") if f.strip()],
+            "familiy": [f.strip() for f in family.split(",") if f.strip()],
+            "tags": [t.strip() for t in tags.split(",") if t.strip()]
+        }
+
+        filename = LORE_DIR / f"{name.lower().replace(' ', '_')}.json"
+        with open(filename, "w") as f:
+            json.dump(data, f, indent=2)
+
+        st.success(f"Lore for {name} saved!")
+
+        # Reload to ChromaDB (optional: import and call load_lore())
+        try:
+            import subprocess
+            subprocess.run(["python3", "lore_loader.py"], check=True)
+            st.info("Lore reloaded into Blue Bunny's brain!")
+        except Exception as e:
+            st.error(f"Failed to reload lore: {e}")
