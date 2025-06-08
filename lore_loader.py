@@ -24,8 +24,8 @@ client = Client()
 collection = client.get_or_create_collection("saw_lore", embedding_function=embedding_func)
 
 # Path to lore directory
-LORE_DIR = Path(__file__).parent / ".." / "frontend" / "lore"
-LORE_DIR = LORE_DIR.resolve()
+LORE_DIR = Path(__file__).resolve().parent.parent / "frontend" / "lore"
+print(f"🔍 Resolved lore path: {LORE_DIR}")
 
 def make_document_text(data):
     return f"""{data['name']} is a {data['species']} who lives in {data['location']}.
