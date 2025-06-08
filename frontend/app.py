@@ -21,6 +21,18 @@ s3 = boto3.client(
 # Set Streamlit page config
 st.set_page_config(page_title="Blue Bunny Chatbot", layout="centered")
 
+st.markdown(
+    """
+    <style>
+    body {
+        background: linear-gradient(to bottom, #c1e8f5, #ffffff);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 # Top-level page navigation
 col1, col2 = st.columns(2)
 with col1:
@@ -37,7 +49,7 @@ page = st.session_state.page
 
 # --- Page 1: Chat --- #
 if page == "Chat":
-    st.title("💬 Chat with Blue Bunny 🐰")
+    st.title("💬 Ask Blue Bunny Anything 🐰")
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -47,7 +59,7 @@ if page == "Chat":
 
     if prompt := st.chat_input("Ask Blue Bunny something!"):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        st.chat_message("user", avatar="🧒").markdown(prompt)
+        st.chat_message("user", avatar="🧸").markdown(prompt)
 
         try:
             response = requests.post(API_URL, json={"message": prompt})
