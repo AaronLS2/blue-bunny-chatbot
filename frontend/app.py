@@ -45,16 +45,26 @@ elif page == "Edit Lore":
     st.title("📚 Add or Edit Stuffed Animal Lore")
 
     files = list(LORE_DIR.glob("*.json"))
-    names = [f.stem.replace("_", " ").title() for f in files]
-    selected = st.selectbox("Select a character to edit or add a new one:", ["Add New"] + names)
+
+    # Build mapping from display name to filename
+    file_map = {
+        f.stem.replace("_", " ").title(): f.name for f in files
+    }
+
+    # Add the "Add New" option
+    options = ["Add New"] + sorted(file_map.keys())
+    selected = st.selectbox("Select a character to edit or add a new one:", options)
 
     if selected == "Add New":
         character = {}
         filename = None
     else:
-        filename = files[names.index(selected) - 1]
+        # Get the real filename from the map
+        selected_filename = file_map[selected]
+        filename = LORE_DIR / selected_filename
         with open(filename) as f:
             character = json.load(f)
+
 
     name = st.text_input("Name", value=character.get("name", ""))
     species = st.text_input("Species", value=character.get("species", ""))

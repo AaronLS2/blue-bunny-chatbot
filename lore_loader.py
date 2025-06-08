@@ -14,8 +14,6 @@ load_dotenv(dotenv_path=env_path)
 
 # Check for API key
 api_key = os.getenv("OPENAI_API_KEY")
-print("🔍 .env path checked:", env_path)
-print("🔐 API key loaded:", api_key[:8] + "..." if api_key else "❌ NOT FOUND")
 
 if not api_key:
     raise ValueError("❌ OPENAI_API_KEY not found in .env")

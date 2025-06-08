@@ -1,13 +1,13 @@
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from fastapi import FastAPI, Request
+from lore_loader import load_lore
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
 from chromadb import Client
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
-from pathlib import Path
 from chroma_utils import query_lore
 
 # Setup
@@ -62,3 +62,8 @@ Here is relevant information you remember: {lore_context}"""},
         return {"response": reply}
     except Exception as e:
         return {"error": str(e)}
+        
+@app.on_event("startup")
+async def startup_event():
+    print("🔄 Loading lore into ChromaDB...")
+    load_lore()
