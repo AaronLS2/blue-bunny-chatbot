@@ -5,7 +5,7 @@ import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from chroma_utils import query_lore
+from backend.chroma_utils import query_lore
 import openai
 import os
 from dotenv import load_dotenv
