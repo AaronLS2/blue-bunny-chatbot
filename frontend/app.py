@@ -6,6 +6,7 @@ import os
 
 # Constants
 API_URL = "https://blue-bunny-backend.onrender.com/chat"
+RELOAD_URL = "https://blue-bunny-backend.onrender.com/reload_lore"
 BUCKET_NAME = "blue-bunny-lore"
 AWS_REGION = "us-east-1"
 
@@ -20,8 +21,19 @@ s3 = boto3.client(
 # Set Streamlit page config
 st.set_page_config(page_title="Blue Bunny Chatbot", layout="centered")
 
-# Sidebar navigation
-page = st.sidebar.selectbox("Choose a page", ["Chat", "Edit Lore"])
+# Top-level page navigation
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("💬 Chat"):
+        st.session_state.page = "Chat"
+with col2:
+    if st.button("📚 Edit Lore"):
+        st.session_state.page = "Edit Lore"
+
+if "page" not in st.session_state:
+    st.session_state.page = "Chat"
+
+page = st.session_state.page
 
 # --- Page 1: Chat --- #
 if page == "Chat":
@@ -30,12 +42,12 @@ if page == "Chat":
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    for msg in reversed(st.session_state.messages):
-        st.chat_message(msg["role"]).markdown(msg["content"])
+    for msg in st.session_state.messages:
+        st.chat_message(msg["role"], avatar="🐰" if msg["role"] == "assistant" else "🧒").markdown(msg["content"])
 
     if prompt := st.chat_input("Ask Blue Bunny something!"):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        st.chat_message("user").markdown(prompt)
+        st.chat_message("user", avatar="🧒").markdown(prompt)
 
         try:
             response = requests.post(API_URL, json={"message": prompt})
@@ -45,7 +57,7 @@ if page == "Chat":
             reply = f"Error: {e}"
 
         st.session_state.messages.append({"role": "assistant", "content": reply})
-        st.chat_message("assistant").markdown(reply)
+        st.chat_message("assistant", avatar="🐰").markdown(reply)
 
 # --- Page 2: Edit Lore --- #
 elif page == "Edit Lore":
@@ -103,7 +115,7 @@ elif page == "Edit Lore":
             st.success(f"Lore for {name} saved to S3!")
 
             # Trigger backend reload
-            reload_resp = requests.post(API_URL.replace("/chat", "/reload_lore"))
+            reload_resp = requests.post(RELOAD_URL)
             if reload_resp.status_code == 200:
                 st.info("Lore reloaded into Blue Bunny’s brain! 🧠")
             else:

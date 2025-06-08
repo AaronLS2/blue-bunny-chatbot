@@ -17,7 +17,6 @@ _collection = None
 
 def get_collection():
     global _chroma_client, _collection
-    print("✅ API key loaded:", os.getenv("OPENAI_API_KEY"))
 
     if _collection is None:
         openai_key = os.getenv("OPENAI_API_KEY")
