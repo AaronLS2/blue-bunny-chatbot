@@ -67,3 +67,11 @@ Here is relevant information you remember: {lore_context}"""},
 async def startup_event():
     print("🔄 Loading lore into ChromaDB...")
     load_lore()
+
+@app.post("/reload_lore")
+async def reload_lore():
+    try:
+        load_lore()
+        return {"status": "Lore reloaded successfully"}
+    except Exception as e:
+        return {"error": str(e)}

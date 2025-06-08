@@ -1,13 +1,21 @@
 import streamlit as st
 import requests
 import json
-from pathlib import Path
-import uuid
+import boto3
+import os
 
 # Constants
-API_URL = "https://blue-bunny-backend.onrender.com/chat"  # Update if backend URL changes
-LORE_DIR = Path(__file__).parent / "lore"
-LORE_DIR.mkdir(exist_ok=True)
+API_URL = "https://blue-bunny-backend.onrender.com/chat"
+BUCKET_NAME = "blue-bunny-lore"
+AWS_REGION = "us-east-1"
+
+# Initialize S3 client
+s3 = boto3.client(
+    "s3",
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    region_name=AWS_REGION
+)
 
 # Set Streamlit page config
 st.set_page_config(page_title="Blue Bunny Chatbot", layout="centered")
@@ -39,32 +47,32 @@ if page == "Chat":
         st.session_state.messages.append({"role": "assistant", "content": reply})
         st.chat_message("assistant").markdown(reply)
 
-
 # --- Page 2: Edit Lore --- #
 elif page == "Edit Lore":
     st.title("📚 Add or Edit Stuffed Animal Lore")
 
-    files = list(LORE_DIR.glob("*.json"))
+    try:
+        response = s3.list_objects_v2(Bucket=BUCKET_NAME)
+        files = [obj["Key"] for obj in response.get("Contents", []) if obj["Key"].endswith(".json")]
+    except Exception as e:
+        st.error(f"Error fetching files from S3: {e}")
+        files = []
 
-    # Build mapping from display name to filename
-    file_map = {
-        f.stem.replace("_", " ").title(): f.name for f in files
-    }
-
-    # Add the "Add New" option
+    file_map = {f.replace("_", " ").replace(".json", "").title(): f for f in files}
     options = ["Add New"] + sorted(file_map.keys())
     selected = st.selectbox("Select a character to edit or add a new one:", options)
 
     if selected == "Add New":
         character = {}
-        filename = None
+        selected_key = None
     else:
-        # Get the real filename from the map
-        selected_filename = file_map[selected]
-        filename = LORE_DIR / selected_filename
-        with open(filename) as f:
-            character = json.load(f)
-
+        selected_key = file_map[selected]
+        try:
+            file_obj = s3.get_object(Bucket=BUCKET_NAME, Key=selected_key)
+            character = json.load(file_obj["Body"])
+        except Exception as e:
+            st.error(f"Error loading character file: {e}")
+            character = {}
 
     name = st.text_input("Name", value=character.get("name", ""))
     species = st.text_input("Species", value=character.get("species", ""))
@@ -73,7 +81,7 @@ elif page == "Edit Lore":
     backstory = st.text_area("Backstory", value=character.get("backstory", ""))
     abilities = st.text_area("Abilities (comma-separated)", value=", ".join(character.get("abilities", [])))
     friends = st.text_area("Friends (comma-separated)", value=", ".join(character.get("friends", [])))
-    family = st.text_area("Family (comma-separated)", value=", ".join(character.get("familiy", [])))
+    family = st.text_area("Family (comma-separated)", value=", ".join(character.get("family", [])))
     tags = st.text_area("Tags (comma-separated)", value=", ".join(character.get("tags", [])))
 
     if st.button("Save Lore"):
@@ -85,20 +93,21 @@ elif page == "Edit Lore":
             "backstory": backstory,
             "abilities": [a.strip() for a in abilities.split(",") if a.strip()],
             "friends": [f.strip() for f in friends.split(",") if f.strip()],
-            "familiy": [f.strip() for f in family.split(",") if f.strip()],
+            "family": [f.strip() for f in family.split(",") if f.strip()],
             "tags": [t.strip() for t in tags.split(",") if t.strip()]
         }
 
-        filename = LORE_DIR / f"{name.lower().replace(' ', '_')}.json"
-        with open(filename, "w") as f:
-            json.dump(data, f, indent=2)
-
-        st.success(f"Lore for {name} saved!")
-
-        # Reload to ChromaDB (optional: import and call load_lore())
+        new_key = f"{name.lower().replace(' ', '_')}.json"
         try:
-            import subprocess
-            subprocess.run(["python3", "lore_loader.py"], check=True)
-            st.info("Lore reloaded into Blue Bunny's brain!")
+            s3.put_object(Bucket=BUCKET_NAME, Key=new_key, Body=json.dumps(data, indent=2))
+            st.success(f"Lore for {name} saved to S3!")
+
+            # Trigger backend reload
+            reload_resp = requests.post(API_URL.replace("/chat", "/reload_lore"))
+            if reload_resp.status_code == 200:
+                st.info("Lore reloaded into Blue Bunny’s brain! 🧠")
+            else:
+                st.warning(f"Saved but reload failed: {reload_resp.text}")
+
         except Exception as e:
-            st.error(f"Failed to reload lore: {e}")
+            st.error(f"Failed to save lore to S3: {e}")
