@@ -1,0 +1,25 @@
+{
+  "name": "grandpa rabbit",
+  "species": "rabbit",
+  "location": "ada's clothes drawer",
+  "personality": "he's really friendly, like a grandpa to everybody. He loves carrots so much that he got a tattoo of it on his  ear.",
+  "backstory": "he's retired now but he used to be a  carrot farmer. some people call him grandpa carrot but he dosen't like that very much",
+  "abilities": [
+    "strong",
+    "can jump very far."
+  ],
+  "friends": [
+    "basically everyone"
+  ],
+  "family": [
+    "white bunny (daughter)",
+    "blue bunny (grandchild)",
+    "pink bunny (grandchild)",
+    "hypnotist rabbit (grandchild)"
+  ],
+  "tags": [
+    "friendly",
+    "carrot loving",
+    "strong."
+  ]
+}

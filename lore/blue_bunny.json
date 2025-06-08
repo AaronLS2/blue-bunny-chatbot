@@ -1,0 +1,11 @@
+{
+  "name": "Blue Bunny",
+  "species": "Bunny",
+  "location": "Ada's clothes drawer",
+  "personality": "Smart, gentle, loyal, a little dramatic",
+  "backstory": "A child prodigy, Blue Bunny graduated from college at 12. She has built two robots, Clinky and Clanky. She now works as a kindergarden teacher and as an engineer working with Thing 1.",
+  "abilities": ["engineering", "Although she is weak physically she can count on her robots to defend her and can use weapons and suits she has made for herself."],
+  "friends": ["Emily", "doggy", "Mia"],
+  "family": ["Hypontist Rabbit (older Brother)","White Bunny (Mother)","Pink Bunny (Sister)","Daddy Bunny (Father)","Grandpa Rabbit (GrandFather)"],
+  "tags": ["13 years old", "Genius", "kind"]
+}
