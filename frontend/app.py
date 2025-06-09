@@ -19,19 +19,18 @@ s3 = boto3.client(
 )
 
 # Set Streamlit page config
-st.set_page_config(page_title="Blue Bunny Chatbot", layout="centered")
+st.set_page_config(page_title="Blue Bunny AI", layout="centered")
 
 st.markdown(
     """
     <style>
-    body {
+    [data-testid="stAppViewContainer"] {
         background: linear-gradient(to bottom, #c1e8f5, #ffffff);
     }
     </style>
     """,
     unsafe_allow_html=True
 )
-
 
 # Top-level page navigation
 col1, col2 = st.columns(2)
